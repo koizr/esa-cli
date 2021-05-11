@@ -1,3 +1,5 @@
+use std::fmt;
+
 use reqwest::{self, Client, ClientBuilder};
 use serde::Deserialize;
 
@@ -7,18 +9,24 @@ pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + S
 
 pub struct Esa {
     client: Client,
+    team_id: TeamId,
+    access_token: AccessToken,
 }
 impl Esa {
-    pub fn new() -> Self {
+    pub fn new(team_id: TeamId, access_token: AccessToken) -> Self {
         let client = ClientBuilder::new().build().unwrap();
-        Esa { client }
+        Esa {
+            client,
+            team_id,
+            access_token,
+        }
     }
 
-    pub async fn team(&self, id: TeamId, token: String) -> Result<Team> {
+    pub async fn team(&self) -> Result<Team> {
         let team = self
             .client
-            .get(format!("{}/teams/{}", BASE_URL, id.0))
-            .bearer_auth(token)
+            .get(format!("{}/teams/{}", BASE_URL, self.team_id))
+            .bearer_auth(self.access_token.to_string())
             .send()
             .await?
             .json::<Team>()
@@ -27,16 +35,27 @@ impl Esa {
     }
 }
 
-impl Default for Esa {
-    fn default() -> Self {
-        Self::new()
+pub struct AccessToken(String);
+impl AccessToken {
+    pub fn new(id: String) -> Self {
+        Self(id)
+    }
+}
+impl fmt::Display for AccessToken {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
 pub struct TeamId(String);
 impl TeamId {
     pub fn new(id: String) -> Self {
-        TeamId(id)
+        Self(id)
+    }
+}
+impl fmt::Display for TeamId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -55,10 +74,4 @@ pub enum TeamPrivacy {
     Closed,
     #[serde(rename = "open")]
     Open,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ErrorResponse {
-    pub error: String,
-    pub message: String,
 }

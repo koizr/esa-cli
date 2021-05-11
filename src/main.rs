@@ -10,13 +10,11 @@ use crate::esa_cli::esa::{self, Esa};
 async fn main() {
     dotenv().ok();
 
-    let esa = Esa::new();
-    let team = esa
-        .team(
-            esa::TeamId::new(env::var("ESA_TEAM_ID").unwrap()),
-            env::var("ESA_ACCESS_TOKEN").unwrap(),
-        )
-        .await;
+    let esa = Esa::new(
+        esa::TeamId::new(env::var("ESA_TEAM_ID").unwrap()),
+        esa::AccessToken::new(env::var("ESA_ACCESS_TOKEN").unwrap()),
+    );
+    let team = esa.team().await;
     match team {
         Ok(team) => println!("team: {}", team.name),
         Err(reason) => println!("error: {}", reason),
