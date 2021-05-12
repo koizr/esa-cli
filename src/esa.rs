@@ -1,5 +1,6 @@
 use std::fmt;
 
+use chrono::{prelude::Local, DateTime};
 use reqwest::{self, Client, ClientBuilder};
 use serde::Deserialize;
 
@@ -32,6 +33,18 @@ impl Esa {
             .json::<Team>()
             .await?;
         Ok(team)
+    }
+
+    pub async fn post(&self, id: i32) -> Result<Post> {
+        let post = self
+            .client
+            .get(format!("{}/teams/{}/posts/{}", BASE_URL, self.team_id, id))
+            .bearer_auth(self.access_token.to_string())
+            .send()
+            .await?
+            .json::<Post>()
+            .await?;
+        Ok(post)
     }
 }
 
@@ -74,4 +87,48 @@ pub enum TeamPrivacy {
     Closed,
     #[serde(rename = "open")]
     Open,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Post {
+    pub number: i32,
+    pub name: String,
+    pub full_name: String,
+    pub wip: bool,
+    pub body_md: String,
+    pub body_html: String,
+    pub created_at: DateTime<Local>,
+    pub message: String,
+    pub url: String,
+    pub updated_at: DateTime<Local>,
+    pub tags: Vec<String>,
+    pub category: String,
+    pub revision_number: i32,
+    pub created_by: Writer,
+    pub updated_by: Writer,
+    pub kind: PostKind,
+    pub comments_count: i32,
+    pub tasks_count: i32,
+    pub done_tasks_count: i32,
+    pub stargazers_count: i32,
+    pub watchers_count: i32,
+    pub star: bool,
+    pub watch: bool,
+    // TODO: comments, stargazers を追加する
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Writer {
+    pub myself: bool,
+    pub name: String,
+    pub screen_name: String,
+    pub icon: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub enum PostKind {
+    #[serde(rename = "stock")]
+    Stock,
+    #[serde(rename = "flow")]
+    Flow,
 }
