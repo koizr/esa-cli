@@ -1,6 +1,6 @@
 use std::env;
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use clap::Clap;
 
 use crate::esa::{self, Esa};
@@ -51,8 +51,14 @@ pub async fn run() -> Result<()> {
     let opts = Opts::parse();
 
     let esa = Esa::new(
-        esa::TeamId::new(env::var("ESA_TEAM_ID").unwrap()),
-        esa::AccessToken::new(env::var("ESA_ACCESS_TOKEN").unwrap()),
+        esa::TeamId::new(
+            env::var("ESA_TEAM_ID")
+                .context("set your team ID to environment variable ESA_TEAM_ID.")?,
+        ),
+        esa::AccessToken::new(
+            env::var("ESA_ACCESS_TOKEN")
+                .context("set your access token to environment variable ESA_ACCESS_TOKEN.")?,
+        ),
     );
 
     match opts.sub {
