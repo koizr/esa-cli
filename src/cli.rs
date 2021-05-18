@@ -71,7 +71,15 @@ pub async fn run() -> Result<()> {
         }
         SubCmd::Post { id, edit, list } => {
             if list {
-                // TODO: posts 一覧を出力する
+                // TODO: クエリを受け付ける
+                // TODO: unwrap を使わないようにするために esa でも anyhow を使う
+                let posts = esa
+                    .posts(esa::PostsQuery::new(None, None, None))
+                    .await
+                    .unwrap();
+                for post in posts.posts {
+                    println!("{} {}", post.number, post.name);
+                }
             } else if edit {
                 // TODO: 編集できるようにする
             } else {
