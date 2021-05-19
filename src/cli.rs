@@ -78,7 +78,7 @@ pub async fn run() -> Result<()> {
                     .await
                     .unwrap();
                 for post in posts.posts {
-                    println!("{} {}", post.number, post.name);
+                    println!("{}\t{}", post.number, post.name);
                 }
             } else if edit {
                 // TODO: 編集できるようにする
