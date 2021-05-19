@@ -154,3 +154,12 @@ impl Into<String> for Order {
         }
     }
 }
+
+pub struct NewPost {
+    pub name: String,
+    pub body_md: Option<String>,
+    pub tags: Vec<String>,
+    pub category: Option<String>,
+    pub wip: bool,
+    pub message: String,
+}

@@ -63,11 +63,8 @@ pub async fn run() -> Result<()> {
 
     match opts.sub {
         SubCmd::Team => {
-            let team = esa.team().await;
-            match team {
-                Ok(team) => println!("team: {:?}", team),
-                Err(reason) => println!("error: {}", reason),
-            }
+            let team = esa.team().await?;
+            println!("team: {:?}", team);
         }
         SubCmd::Post { id, edit, list } => {
             match id {
@@ -76,8 +73,7 @@ pub async fn run() -> Result<()> {
                         // TODO: 編集できるようにする
                         println!("Edit mode is not available yet.");
                     } else {
-                        // TODO: unwrap を使わないようにするために esa でも anyhow を使う
-                        let post = esa.post(id).await.unwrap();
+                        let post = esa.post(id).await?;
                         println!("{}", post.url);
                         println!("{}", post.full_name);
                         println!("{}", post.body_md);
@@ -86,11 +82,9 @@ pub async fn run() -> Result<()> {
                 None => {
                     if list {
                         // TODO: クエリを受け付ける
-                        // TODO: unwrap を使わないようにするために esa でも anyhow を使う
                         let posts = esa
                             .posts(esa::post::SearchQuery::new(None, None, None))
-                            .await
-                            .unwrap();
+                            .await?;
                         for post in posts.posts {
                             println!("{}\t{}", post.number, post.name);
                         }
