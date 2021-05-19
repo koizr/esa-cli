@@ -70,28 +70,33 @@ pub async fn run() -> Result<()> {
             }
         }
         SubCmd::Post { id, edit, list } => {
-            if list {
-                // TODO: クエリを受け付ける
-                // TODO: unwrap を使わないようにするために esa でも anyhow を使う
-                let posts = esa
-                    .posts(esa::post::SearchQuery::new(None, None, None))
-                    .await
-                    .unwrap();
-                for post in posts.posts {
-                    println!("{}\t{}", post.number, post.name);
-                }
-            } else if edit {
-                // TODO: 編集できるようにする
-            } else {
-                match id {
-                    Some(id) => {
+            match id {
+                Some(id) => {
+                    if edit {
+                        // TODO: 編集できるようにする
+                        println!("Edit mode is not available yet.");
+                    } else {
                         // TODO: unwrap を使わないようにするために esa でも anyhow を使う
                         let post = esa.post(id).await.unwrap();
                         println!("{}", post.url);
                         println!("{}", post.full_name);
                         println!("{}", post.body_md);
                     }
-                    None => bail!("Post ID argument or --list option are required."),
+                }
+                None => {
+                    if list {
+                        // TODO: クエリを受け付ける
+                        // TODO: unwrap を使わないようにするために esa でも anyhow を使う
+                        let posts = esa
+                            .posts(esa::post::SearchQuery::new(None, None, None))
+                            .await
+                            .unwrap();
+                        for post in posts.posts {
+                            println!("{}\t{}", post.number, post.name);
+                        }
+                    } else {
+                        bail!("Post ID argument or --list option are required.");
+                    }
                 }
             }
         }
