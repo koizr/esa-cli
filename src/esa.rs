@@ -60,18 +60,18 @@ impl Esa {
     }
 
     pub async fn posts(&self, query: post::SearchQuery) -> Result<post::Posts> {
-        let mut query_string: HashMap<String, String> = HashMap::new();
+        let mut query_string: HashMap<&str, String> = HashMap::new();
         if let Some(q) = query.q {
-            query_string.insert("q".to_string(), q);
+            query_string.insert("q", q);
         }
         if let Some(include) = query.include {
             let include: Vec<String> = include.into_iter().map(Into::into).collect();
-            query_string.insert("include".to_string(), include.join(","));
+            query_string.insert("include", include.join(","));
         }
         if let Some(sort) = query.sort {
             let (s, o) = sort.into();
-            query_string.insert("sort".to_string(), s);
-            query_string.insert("order".to_string(), o);
+            query_string.insert("sort", s);
+            query_string.insert("order", o);
         }
 
         let url = Url::parse_with_params(
