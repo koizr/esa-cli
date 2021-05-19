@@ -74,7 +74,7 @@ pub async fn run() -> Result<()> {
                 // TODO: クエリを受け付ける
                 // TODO: unwrap を使わないようにするために esa でも anyhow を使う
                 let posts = esa
-                    .posts(esa::PostsQuery::new(None, None, None))
+                    .posts(esa::post::SearchQuery::new(None, None, None))
                     .await
                     .unwrap();
                 for post in posts.posts {
