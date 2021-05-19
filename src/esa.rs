@@ -18,7 +18,9 @@ pub struct Esa {
 }
 impl Esa {
     pub fn new(team_id: TeamId, access_token: AccessToken) -> Self {
-        let client = ClientBuilder::new().build().unwrap();
+        let client = ClientBuilder::new()
+            .build()
+            .expect("failed to build HTTP client");
         Esa {
             client,
             team_id,
