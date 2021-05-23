@@ -1,7 +1,12 @@
 use std::env;
+use std::fs::{self, File, OpenOptions};
+use std::io::Write;
+use std::path::PathBuf;
+use std::process::{Command, ExitStatus};
 
 use anyhow::{bail, Context, Result};
 use clap::Clap;
+use dirs;
 
 use crate::esa::{self, Esa};
 
@@ -37,6 +42,10 @@ enum SubCmd {
         /// Views List
         #[clap(short, long)]
         list: bool,
+
+        /// Create new post
+        #[clap(short, long)]
+        new: bool,
     },
 }
 
@@ -49,6 +58,23 @@ pub async fn run() -> Result<()> {
     // esa post --list --team koizr
 
     let opts = Opts::parse();
+
+    if let Some(path) = create_config_dir() {
+        println!(
+            "create config directory {}",
+            path.as_os_str()
+                .to_str()
+                .expect("failed to get config directory path")
+        );
+    }
+    if let Some(path) = create_tmp_file() {
+        println!(
+            "create edit temporarily file {}",
+            path.as_os_str()
+                .to_str()
+                .expect("failed to get edit temporarily file path")
+        );
+    }
 
     let esa = Esa::new(
         esa::TeamId::new(
@@ -66,7 +92,12 @@ pub async fn run() -> Result<()> {
             let team = esa.team().await?;
             println!("team: {:?}", team);
         }
-        SubCmd::Post { id, edit, list } => {
+        SubCmd::Post {
+            id,
+            edit,
+            list,
+            new,
+        } => {
             match id {
                 Some(id) => {
                     if edit {
@@ -88,6 +119,10 @@ pub async fn run() -> Result<()> {
                         for post in posts.posts {
                             println!("{}\t{}", post.number, post.name);
                         }
+                    } else if new {
+                        let exit_status = open_editor(&tmp_file_path(), "default body");
+                        // TODO: 正常終了かつ変更されていたら、新しい記事を保存する
+                        println!("{}", exit_status);
                     } else {
                         bail!("Post ID argument or --list option are required.");
                     }
@@ -97,4 +132,67 @@ pub async fn run() -> Result<()> {
     }
 
     Ok(())
+}
+
+/// return config directory path
+fn config_dir_path() -> PathBuf {
+    let mut config = dirs::home_dir().expect("home dir is not found");
+    config.push(".esa");
+    config
+}
+
+/// create config directory if it doesn't exist
+fn create_config_dir() -> Option<PathBuf> {
+    let config = config_dir_path();
+    if config.exists() {
+        None
+    } else {
+        fs::create_dir_all(&config).expect(&format!(
+            "failed to config dir. path {}",
+            config
+                .as_os_str()
+                .to_str()
+                .expect("failed to get config directory path")
+        ));
+        Some(config)
+    }
+}
+
+fn tmp_file_path() -> PathBuf {
+    let mut tmp_file_path = config_dir_path();
+    tmp_file_path.push("edit.md");
+    tmp_file_path
+}
+
+/// create temporarily file if it doesn't exist
+fn create_tmp_file() -> Option<PathBuf> {
+    let tmp_file_path = tmp_file_path();
+    if tmp_file_path.exists() {
+        None
+    } else {
+        File::create(&tmp_file_path).expect("failed to create new files");
+        Some(tmp_file_path)
+    }
+}
+
+fn editor() -> PathBuf {
+    let editor = env::var("EDITOR").expect("EDITOR environment variable is not found");
+    PathBuf::from(editor)
+}
+
+/// open text editor
+fn open_editor(path: &PathBuf, default_text: &str) -> ExitStatus {
+    OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .open(path)
+        .expect("failed to open temporarily file")
+        .write_all(default_text.as_bytes())
+        .expect("failed to write to temporarily file");
+    Command::new(editor())
+        .arg(path)
+        .spawn()
+        .expect("failed to spawn text editor")
+        .wait()
+        .expect("failed to open editor")
 }
