@@ -120,9 +120,17 @@ pub async fn run() -> Result<()> {
                             println!("{}\t{}", post.number, post.name);
                         }
                     } else if new {
-                        let exit_status = open_editor(&tmp_file_path(), "default body");
-                        // TODO: 正常終了かつ変更されていたら、新しい記事を保存する
-                        println!("{}", exit_status);
+                        let exit_status = open_editor(&tmp_file_path(), TMP_FILE_DEFAULT_VALUE);
+                        if exit_status.success() {
+                            if let Some(diff) = get_diff() {
+                                // TODO: esa.create_post を呼ぶ
+                                println!("{}", diff);
+                            } else {
+                                println!("creating new post is canceled");
+                            }
+                        } else {
+                            println!("creating new post is aborted");
+                        }
                     } else {
                         bail!("Post ID argument or --list option are required.");
                     }
@@ -157,6 +165,8 @@ fn create_config_dir() -> Option<PathBuf> {
         Some(config)
     }
 }
+
+const TMP_FILE_DEFAULT_VALUE: &'static str = "default body";
 
 fn tmp_file_path() -> PathBuf {
     let mut tmp_file_path = config_dir_path();
@@ -195,4 +205,19 @@ fn open_editor(path: &PathBuf, default_text: &str) -> ExitStatus {
         .expect("failed to spawn text editor")
         .wait()
         .expect("failed to open editor")
+}
+
+fn read_tmp_file() -> String {
+    fs::read_to_string(tmp_file_path()).expect("failed to read temporarily file")
+}
+
+/// if there is difference between default value and edited value, return edited value.
+/// else return None
+fn get_diff() -> Option<String> {
+    let tmp_file_value = read_tmp_file();
+    if &tmp_file_value[..] == TMP_FILE_DEFAULT_VALUE {
+        None
+    } else {
+        Some(tmp_file_value)
+    }
 }
