@@ -1,5 +1,5 @@
 use chrono::{prelude::Local, DateTime};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
 pub struct Post {
@@ -155,11 +155,12 @@ impl Into<String> for Order {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct NewPost {
     pub name: String,
     pub body_md: Option<String>,
     pub tags: Vec<String>,
     pub category: Option<String>,
     pub wip: bool,
-    pub message: String,
+    pub message: Option<String>,
 }

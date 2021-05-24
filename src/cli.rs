@@ -10,6 +10,7 @@ use dirs;
 
 use crate::esa::{self, Esa};
 
+mod tmp_file;
 #[derive(Clap, Debug)]
 #[clap(
     name = "esa-cli",
@@ -120,11 +121,13 @@ pub async fn run() -> Result<()> {
                             println!("{}\t{}", post.number, post.name);
                         }
                     } else if new {
-                        let exit_status = open_editor(&tmp_file_path(), TMP_FILE_DEFAULT_VALUE);
+                        let exit_status =
+                            open_editor(&tmp_file_path(), tmp_file::TMP_FILE_DEFAULT_VALUE);
                         if exit_status.success() {
                             if let Some(diff) = get_diff() {
+                                let new_post = tmp_file::parse_new_post(&diff);
+                                println!("{:?}", new_post);
                                 // TODO: esa.create_post を呼ぶ
-                                println!("{}", diff);
                             } else {
                                 println!("creating new post is canceled");
                             }
@@ -165,8 +168,6 @@ fn create_config_dir() -> Option<PathBuf> {
         Some(config)
     }
 }
-
-const TMP_FILE_DEFAULT_VALUE: &'static str = "default body";
 
 fn tmp_file_path() -> PathBuf {
     let mut tmp_file_path = config_dir_path();
@@ -215,7 +216,7 @@ fn read_tmp_file() -> String {
 /// else return None
 fn get_diff() -> Option<String> {
     let tmp_file_value = read_tmp_file();
-    if &tmp_file_value[..] == TMP_FILE_DEFAULT_VALUE {
+    if &tmp_file_value[..] == tmp_file::TMP_FILE_DEFAULT_VALUE {
         None
     } else {
         Some(tmp_file_value)
