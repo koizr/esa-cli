@@ -109,9 +109,9 @@ pub async fn run() -> Result<()> {
                         let exit_status = editor.open(tmp_file::TMP_FILE_DEFAULT_VALUE);
                         if exit_status.success() {
                             if let Some(diff) = editor.diff() {
-                                let new_post = tmp_file::parse_new_post(&diff);
-                                println!("{:?}", new_post);
-                                // TODO: esa.create_post を呼ぶ
+                                let new_post = tmp_file::parse_new_post(&diff)?;
+                                let created = esa.create_post(&new_post).await?;
+                                println!("Create new post! {}", created.url);
                             } else {
                                 println!("creating new post is canceled");
                             }

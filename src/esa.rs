@@ -95,6 +95,24 @@ impl Esa {
             Err(EsaError::Error(error))?
         }
     }
+
+    pub async fn create_post(&self, post: &post::NewPost) -> Result<post::NewPostCreated> {
+        let response = self
+            .client
+            .post(format!("{}/teams/{}/posts", BASE_URL, self.team_id))
+            .bearer_auth(self.access_token.to_string())
+            .json(post)
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            let post_created = response.json::<post::NewPostCreated>().await?;
+            Ok(post_created)
+        } else {
+            let error = response.json::<ErrorResponse>().await?;
+            Err(EsaError::Error(error))?
+        }
+    }
 }
 
 pub struct AccessToken(String);
