@@ -8,7 +8,8 @@ use crate::esa::{self, Esa};
 mod config;
 mod tmp_file;
 
-use config::{Config, Editor};
+use config::Config;
+use tmp_file::Editor;
 
 #[derive(Clap, Debug)]
 #[clap(

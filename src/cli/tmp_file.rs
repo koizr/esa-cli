@@ -1,11 +1,55 @@
 use anyhow::{anyhow, Result};
+use std::fs::{self, OpenOptions};
+use std::io::Write;
+use std::process::{Command, ExitStatus};
 
+use super::config::Config;
 use crate::esa;
 
 pub const TMP_FILE_DEFAULT_VALUE: &'static str = r#"<!-- ### input post name next line ### -->
 
 <!-- ### input body next and subsequent lines ### -->
 "#;
+
+pub struct Editor<'a> {
+    config: &'a Config,
+}
+
+impl<'a> Editor<'a> {
+    pub fn new(config: &'a Config) -> Self {
+        Self { config }
+    }
+
+    pub fn open(&self, default_text: &str) -> ExitStatus {
+        OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open(&self.config.tmp_file_path)
+            .expect("failed to open temporarily file")
+            .write_all(default_text.as_bytes())
+            .expect("failed to write to temporarily file");
+
+        Command::new(&self.config.editor_path)
+            .arg(&self.config.tmp_file_path)
+            .spawn()
+            .expect("failed to spawn text editor")
+            .wait()
+            .expect("failed to open editor")
+    }
+
+    pub fn read(&self) -> String {
+        fs::read_to_string(&self.config.tmp_file_path).expect("failed to read temporarily file")
+    }
+
+    pub fn diff(&self) -> Option<String> {
+        let tmp_file_value = self.read();
+        if &tmp_file_value[..] == TMP_FILE_DEFAULT_VALUE {
+            None
+        } else {
+            Some(tmp_file_value)
+        }
+    }
+}
 
 pub fn parse_new_post(content: &str) -> Result<esa::post::NewPost> {
     let mut lines = content.lines();
