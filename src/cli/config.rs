@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use dirs;
 
+#[derive(Debug)]
 pub struct Config {
     pub dir_path: PathBuf,
     pub tmp_file_path: PathBuf,

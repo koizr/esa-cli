@@ -2,6 +2,7 @@ use std::env;
 
 use anyhow::{bail, Context, Result};
 use clap::Clap;
+use log;
 
 use crate::esa::{self, Esa};
 
@@ -51,15 +52,10 @@ enum SubCmd {
 }
 
 pub async fn run() -> Result<()> {
-    // コマンドイメージ
-    // esa team
-    // esa post 42 --get
-    // esa post 42 --edit
-    // esa post --list
-    // esa post --list --team koizr
-
     let opts = Opts::parse();
+    log::debug!("Options: {:?}", opts);
     let config = Config::new();
+    log::debug!("Config: {:?}", config);
 
     let esa = Esa::new(
         esa::TeamId::new(
