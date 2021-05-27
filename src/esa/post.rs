@@ -14,7 +14,7 @@ pub struct Post {
     pub url: String,
     pub updated_at: DateTime<Local>,
     pub tags: Vec<String>,
-    pub category: String,
+    pub category: Option<String>,
     pub revision_number: i32,
     pub created_by: Writer,
     pub updated_by: Writer,
