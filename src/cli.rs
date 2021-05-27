@@ -82,8 +82,32 @@ pub async fn run() -> Result<()> {
             match id {
                 Some(id) => {
                     if edit {
-                        // TODO: 編集できるようにする
-                        println!("Edit mode is not available yet.");
+                        let post = esa.post(id).await?;
+                        let post_content =
+                            tmp_file::format_post_content(&post.full_name, &post.body_md);
+
+                        let editor = Editor::new(&config);
+                        let exit_status = editor.open(&post_content);
+
+                        if exit_status.success() {
+                            if let Some(diff) = editor.diff() {
+                                let post_content = tmp_file::parse_post(&diff)?;
+                                let edited_post = post.edit(
+                                    post_content.full_name,
+                                    post_content.body_md,
+                                    Some(post_content.tags),
+                                    post_content.category,
+                                    true,
+                                    None,
+                                );
+                                let edited = esa.edit_post(id, &edited_post).await?;
+                                println!("Edit post! {}", edited.url);
+                            } else {
+                                println!("creating new post is canceled");
+                            }
+                        } else {
+                            println!("creating new post is aborted");
+                        }
                     } else {
                         let post = esa.post(id).await?;
                         println!("{}", post.url);
@@ -105,8 +129,8 @@ pub async fn run() -> Result<()> {
                         let exit_status = editor.open(tmp_file::TMP_FILE_DEFAULT_VALUE);
                         if exit_status.success() {
                             if let Some(diff) = editor.diff() {
-                                let new_post = tmp_file::parse_new_post(&diff)?;
-                                let created = esa.create_post(&new_post).await?;
+                                let post_content = tmp_file::parse_post(&diff)?;
+                                let created = esa.create_post(post_content, true, None).await?;
                                 println!("Create new post! {}", created.url);
                             } else {
                                 println!("creating new post is canceled");

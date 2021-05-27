@@ -1,7 +1,9 @@
-use anyhow::{anyhow, Result};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::process::{Command, ExitStatus};
+
+use anyhow::{anyhow, Result};
+use log;
 
 use super::config::Config;
 use crate::esa;
@@ -10,6 +12,17 @@ pub const TMP_FILE_DEFAULT_VALUE: &'static str = r#"<!-- ### input post name nex
 
 <!-- ### input body next and subsequent lines ### -->
 "#;
+
+pub fn format_post_content(title: &str, body: &str) -> String {
+    format!(
+        r#"<!-- ### input post name next line ### -->
+{}
+<!-- ### input body next and subsequent lines ### -->
+{}
+"#,
+        title, body
+    )
+}
 
 pub struct Editor<'a> {
     config: &'a Config,
@@ -29,12 +42,31 @@ impl<'a> Editor<'a> {
             .write_all(default_text.as_bytes())
             .expect("failed to write to temporarily file");
 
-        Command::new(&self.config.editor_path)
+        log::debug!(
+            "open editor {}",
+            self.config
+                .editor_path
+                .as_os_str()
+                .to_str()
+                .unwrap_or("<no editor path>")
+        );
+
+        let status = Command::new(&self.config.editor_path)
             .arg(&self.config.tmp_file_path)
             .spawn()
             .expect("failed to spawn text editor")
             .wait()
-            .expect("failed to open editor")
+            .expect("failed to open editor");
+
+        log::debug!(
+            "close editor with exit status {}",
+            status
+                .code()
+                .map(|s| s.to_string())
+                .unwrap_or(String::from("<no exit status>"))
+        );
+
+        status
     }
 
     pub fn read(&self) -> String {
@@ -51,20 +83,19 @@ impl<'a> Editor<'a> {
     }
 }
 
-pub fn parse_new_post(content: &str) -> Result<esa::post::NewPost> {
+pub fn parse_post(content: &str) -> Result<esa::post::PostContent> {
     let mut lines = content.lines();
     if let None = lines.next() {
         Err(anyhow!("failed to parse content"))?
     }
-    let title = lines.next();
+    let title = lines
+        .next()
+        .ok_or(anyhow!("failed to parse content. post name is required"))?;
     let ParsedTitle {
         category,
         name,
         tags,
-    } = match title {
-        Some(title) => parse_title(title)?,
-        None => Err(anyhow!("failed to parse content. post name is required"))?,
-    };
+    } = parse_title(title)?;
     if let None = lines.next() {
         Err(anyhow!("failed to parse content"))?
     }
@@ -73,13 +104,12 @@ pub fn parse_new_post(content: &str) -> Result<esa::post::NewPost> {
         body.push(line);
     }
 
-    Ok(esa::post::NewPost {
+    Ok(esa::post::PostContent {
         name,
+        full_name: String::from(title),
         body_md: Some(body.join("\n")),
         tags,
         category,
-        wip: true,
-        message: None,
     })
 }
 
@@ -133,15 +163,14 @@ mod tests {
     #[test]
     fn test_parse_new_post() {
         assert_eq!(
-            esa::post::NewPost {
+            esa::post::PostContent {
                 name: String::from("記事タイトル"),
+                full_name: String::from("カテゴリ1/カテゴリ2/記事タイトル #tag1 #タグ2"),
                 body_md: Some(String::from("記事 body")),
                 category: Some(String::from("カテゴリ1/カテゴリ2")),
                 tags: vec![String::from("tag1"), String::from("タグ2")],
-                wip: true,
-                message: None,
             },
-            parse_new_post(
+            parse_post(
                 r#"<!-- ### input post name next line ### -->
 カテゴリ1/カテゴリ2/記事タイトル #tag1 #タグ2
 <!-- ### input body next and subsequent lines ### -->

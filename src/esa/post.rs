@@ -29,6 +29,42 @@ pub struct Post {
     // TODO: comments, stargazers を追加する
 }
 
+impl Post {
+    pub fn edit(
+        self,
+        name: String,
+        body_md: Option<String>,
+        tags: Option<Vec<String>>,
+        category: Option<String>,
+        wip: bool,
+        message: Option<String>,
+    ) -> EditedPost {
+        let Self {
+            body_md: original_body_md,
+            revision_number: original_number,
+            updated_by:
+                Writer {
+                    screen_name: original_user,
+                    ..
+                },
+            ..
+        } = self;
+        EditedPost {
+            name,
+            body_md,
+            tags,
+            category,
+            wip,
+            message,
+            original_revision: Some(OriginalRevisionPost {
+                body_md: Some(original_body_md),
+                number: Some(original_number),
+                user: Some(original_user),
+            }),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Writer {
     pub myself: bool,
@@ -155,7 +191,16 @@ impl Into<String> for Order {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Serialize, PartialEq)]
+pub struct PostContent {
+    pub name: String,
+    pub full_name: String,
+    pub body_md: Option<String>,
+    pub tags: Vec<String>,
+    pub category: Option<String>,
+}
+
+#[derive(Debug, Serialize, PartialEq)]
 pub struct NewPost {
     pub name: String,
     pub body_md: Option<String>,
@@ -182,6 +227,52 @@ pub struct NewPostCreated {
     pub revision_number: i32,
     pub created_by: Writer,
     pub updated_by: Writer,
+    pub kind: Kind,
+    pub comments_count: i32,
+    pub tasks_count: i32,
+    pub done_tasks_count: i32,
+    pub stargazers_count: i32,
+    pub watchers_count: i32,
+    pub star: bool,
+    pub watch: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct EditedPost {
+    pub name: String,
+    pub body_md: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub category: Option<String>,
+    pub wip: bool,
+    pub message: Option<String>,
+    pub original_revision: Option<OriginalRevisionPost>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OriginalRevisionPost {
+    pub body_md: Option<String>,
+    pub number: Option<i32>,
+    pub user: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PostEdited {
+    pub number: i32,
+    pub name: String,
+    pub full_name: String,
+    pub wip: bool,
+    pub body_md: Option<String>,
+    pub body_html: Option<String>,
+    pub created_at: DateTime<Local>,
+    pub message: Option<String>,
+    pub url: String,
+    pub updated_at: DateTime<Local>,
+    pub tags: Vec<String>,
+    pub category: Option<String>,
+    pub revision_number: i32,
+    pub created_by: Writer,
+    pub updated_by: Writer,
+    pub overlapped: bool,
     pub kind: Kind,
     pub comments_count: i32,
     pub tasks_count: i32,
