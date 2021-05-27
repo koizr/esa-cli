@@ -98,7 +98,7 @@ pub async fn run() -> Result<()> {
                             .posts(esa::post::SearchQuery::new(None, None, None))
                             .await?;
                         for post in posts.posts {
-                            println!("{}\t{}", post.number, post.name);
+                            println!("{}\t{}", post.number, post.full_name);
                         }
                     } else if new {
                         let editor = Editor::new(&config);
