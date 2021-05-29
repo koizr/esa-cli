@@ -144,6 +144,22 @@ impl Esa {
             Err(EsaError::Error(error))?
         }
     }
+
+    pub async fn delete_post(&self, id: i32) -> Result<()> {
+        let response = self
+            .client
+            .delete(format!("{}/teams/{}/posts/{}", BASE_URL, self.team_id, id))
+            .bearer_auth(self.access_token.to_string())
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            let error = response.json::<ErrorResponse>().await?;
+            Err(EsaError::Error(error))?
+        }
+    }
 }
 
 pub struct AccessToken(String);

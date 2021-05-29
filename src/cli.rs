@@ -1,4 +1,5 @@
 use std::env;
+use std::io;
 
 use anyhow::{bail, Context, Result};
 use clap::Clap;
@@ -37,17 +38,21 @@ enum SubCmd {
         #[clap(name = "ID")]
         id: Option<i32>,
 
-        /// Edits
+        /// Edits the post
         #[clap(short, long)]
         edit: bool,
 
-        /// Views List
+        /// Views posts
         #[clap(short, long)]
         list: bool,
 
-        /// Create new post
+        /// Creates new post
         #[clap(short, long)]
         new: bool,
+
+        /// Deletes the post
+        #[clap(short, long)]
+        delete: bool,
     },
 }
 
@@ -78,6 +83,7 @@ pub async fn run() -> Result<()> {
             edit,
             list,
             new,
+            delete,
         } => {
             match id {
                 Some(id) => {
@@ -107,6 +113,15 @@ pub async fn run() -> Result<()> {
                             }
                         } else {
                             println!("creating new post is aborted");
+                        }
+                    } else if delete {
+                        let post = esa.post(id).await?;
+                        println!("post {}: {}", id, post.full_name);
+                        if confirm("Do you delete the above post")? {
+                            esa.delete_post(id).await?;
+                            println!("{} is deleted.", post.full_name);
+                        } else {
+                            println!("canceled");
                         }
                     } else {
                         let post = esa.post(id).await?;
@@ -147,4 +162,22 @@ pub async fn run() -> Result<()> {
     }
 
     Ok(())
+}
+
+/// print confirm message
+/// # Returns
+/// - Ok(true): input yes
+/// - Ok(false): input others
+/// - Err: input error
+fn confirm(message: &str) -> Result<bool> {
+    // TODO: (y/N): _ ← ここに入力できるようにしたい（改行をはさみたくない）
+    println!("{} (y/N): ", message);
+
+    let mut answer = String::new();
+    io::stdin().read_line(&mut answer)?;
+
+    match &(answer.trim().to_lowercase())[..] {
+        "y" | "yes" => Ok(true),
+        _ => Ok(false),
+    }
 }
