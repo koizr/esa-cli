@@ -75,8 +75,7 @@ pub async fn run() -> Result<()> {
 
     match opts.sub {
         SubCmd::Team => {
-            let team = esa.team().await?;
-            println!("team: {:?}", team);
+            print_team(&esa).await?;
         }
         SubCmd::Post {
             id,
@@ -84,83 +83,123 @@ pub async fn run() -> Result<()> {
             list,
             new,
             delete,
-        } => {
-            match id {
-                Some(id) => {
-                    if edit {
-                        let post = esa.post(id).await?;
-                        let post_content =
-                            tmp_file::format_post_content(&post.full_name, &post.body_md);
-
-                        let editor = Editor::new(&config);
-                        let exit_status = editor.open(&post_content);
-
-                        if exit_status.success() {
-                            if let Some(diff) = editor.diff() {
-                                let post_content = tmp_file::parse_post(&diff)?;
-                                let edited_post = post.edit(
-                                    post_content.full_name,
-                                    post_content.body_md,
-                                    Some(post_content.tags),
-                                    post_content.category,
-                                    true,
-                                    None,
-                                );
-                                let edited = esa.edit_post(id, &edited_post).await?;
-                                println!("Edit post! {}", edited.url);
-                            } else {
-                                println!("creating new post is canceled");
-                            }
-                        } else {
-                            println!("creating new post is aborted");
-                        }
-                    } else if delete {
-                        let post = esa.post(id).await?;
-                        println!("post {}: {}", id, post.full_name);
-                        if confirm("Do you delete the above post")? {
-                            esa.delete_post(id).await?;
-                            println!("{} is deleted.", post.full_name);
-                        } else {
-                            println!("canceled");
-                        }
-                    } else {
-                        let post = esa.post(id).await?;
-                        println!("{}", post.url);
-                        println!("{}", post.full_name);
-                        println!("{}", post.body_md);
-                    }
-                }
-                None => {
-                    if list {
-                        // TODO: クエリを受け付ける
-                        let posts = esa
-                            .posts(esa::post::SearchQuery::new(None, None, None))
-                            .await?;
-                        for post in posts.posts {
-                            println!("{}\t{}", post.number, post.full_name);
-                        }
-                    } else if new {
-                        let editor = Editor::new(&config);
-                        let exit_status = editor.open(tmp_file::TMP_FILE_DEFAULT_VALUE);
-                        if exit_status.success() {
-                            if let Some(diff) = editor.diff() {
-                                let post_content = tmp_file::parse_post(&diff)?;
-                                let created = esa.create_post(post_content, true, None).await?;
-                                println!("Create new post! {}", created.url);
-                            } else {
-                                println!("creating new post is canceled");
-                            }
-                        } else {
-                            println!("creating new post is aborted");
-                        }
-                    } else {
-                        bail!("Post ID argument or --list option are required.");
-                    }
+        } => match id {
+            Some(id) => {
+                if edit {
+                    edit_post(&esa, id, &config).await?;
+                } else if delete {
+                    delete_post(&esa, id).await?;
+                } else {
+                    print_post(&esa, id).await?;
                 }
             }
-        }
+            None => {
+                if list {
+                    print_posts(&esa).await?;
+                } else if new {
+                    create_post(&esa, &config).await?;
+                } else {
+                    bail!("Post ID argument or --list option are required.");
+                }
+            }
+        },
     }
 
+    Ok(())
+}
+
+/// Print team
+async fn print_team(esa: &Esa) -> Result<()> {
+    let team = esa.team().await?;
+    println!("team: {:?}", team);
+    Ok(())
+}
+
+/// Print post
+/// # Args
+/// - id: Post ID
+async fn print_post(esa: &Esa, id: i32) -> Result<()> {
+    let post = esa.post(id).await?;
+    println!("{}", post.url);
+    println!("{}", post.full_name);
+    println!("{}", post.body_md);
+    Ok(())
+}
+
+/// Print posts
+async fn print_posts(esa: &Esa) -> Result<()> {
+    // TODO: クエリを受け付ける
+    let posts = esa
+        .posts(esa::post::SearchQuery::new(None, None, None))
+        .await?;
+    for post in posts.posts {
+        println!("{}\t{}", post.number, post.full_name);
+    }
+    Ok(())
+}
+
+/// Create new post
+async fn create_post(esa: &Esa, config: &Config) -> Result<()> {
+    let editor = Editor::new(config);
+    let exit_status = editor.open(tmp_file::TMP_FILE_DEFAULT_VALUE);
+    if exit_status.success() {
+        if let Some(diff) = editor.diff() {
+            let post_content = tmp_file::parse_post(&diff)?;
+            let created = esa.create_post(post_content, true, None).await?;
+            println!("Create new post! {}", created.url);
+        } else {
+            println!("creating new post is canceled");
+        }
+    } else {
+        println!("creating new post is aborted");
+    }
+    Ok(())
+}
+
+/// Edit post
+/// # Args
+/// - id: Post ID
+async fn edit_post(esa: &Esa, id: i32, config: &Config) -> Result<()> {
+    let post = esa.post(id).await?;
+    let post_content = tmp_file::format_post_content(&post.full_name, &post.body_md);
+
+    let editor = Editor::new(config);
+    let exit_status = editor.open(&post_content);
+
+    if exit_status.success() {
+        if let Some(diff) = editor.diff() {
+            let post_content = tmp_file::parse_post(&diff)?;
+            let edited_post = post.edit(
+                post_content.full_name,
+                post_content.body_md,
+                Some(post_content.tags),
+                post_content.category,
+                true,
+                None,
+            );
+            let edited = esa.edit_post(id, &edited_post).await?;
+            println!("Edit post! {}", edited.url);
+        } else {
+            println!("creating new post is canceled");
+        }
+    } else {
+        println!("creating new post is aborted");
+    }
+    Ok(())
+}
+
+/// Delete post
+/// # Args
+/// - id: Post ID
+async fn delete_post(esa: &Esa, id: i32) -> Result<()> {
+    let post = esa.post(id).await?;
+    println!("post {}: {}", id, post.full_name);
+    if confirm("Do you delete the above post")? {
+        esa.delete_post(id).await?;
+        println!("{} is deleted.", post.full_name);
+    } else {
+        println!("canceled");
+    }
     Ok(())
 }
 
