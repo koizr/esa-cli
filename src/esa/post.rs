@@ -92,6 +92,7 @@ pub struct Posts {
     pub max_per_page: i32,
 }
 
+#[derive(Debug)]
 pub struct SearchQuery {
     pub q: Option<String>,
     pub include: Option<Vec<Include>>,
@@ -104,6 +105,7 @@ impl SearchQuery {
     }
 }
 
+#[derive(Debug)]
 pub enum Include {
     /// スターを含む
     Stargazers,
@@ -137,6 +139,7 @@ impl Into<String> for Include {
     }
 }
 
+#[derive(Debug)]
 pub enum Sort {
     /// 更新日時（デフォルト）
     Updated(Order),
@@ -145,7 +148,7 @@ pub enum Sort {
     /// 記事番号
     Number(Order),
     /// Star の数
-    Starts(Order),
+    Stars(Order),
     /// Watch の数
     Watchers(Order),
     /// Comment の数
@@ -154,13 +157,35 @@ pub enum Sort {
     BestMatch(Order),
 }
 
+impl From<(String, String)> for Sort {
+    fn from(value: (String, String)) -> Self {
+        let (sort, order) = value;
+        match &sort[..] {
+            "created" => Self::Created(From::from(order)),
+            "number" => Self::Number(From::from(order)),
+            "stars" => Self::Stars(From::from(order)),
+            "watchers" => Self::Watchers(From::from(order)),
+            "comments" => Self::Comments(From::from(order)),
+            "best_match" => Self::BestMatch(From::from(order)),
+            _ => Self::Updated(From::from(order)),
+        }
+    }
+}
+
+impl From<(String, Option<String>)> for Sort {
+    fn from(value: (String, Option<String>)) -> Self {
+        let order = value.1.unwrap_or_default();
+        Self::from((value.0, order))
+    }
+}
+
 impl Into<(String, String)> for Sort {
     fn into(self) -> (String, String) {
         match self {
             Sort::Updated(ord) => (String::from("update"), ord.into()),
             Sort::Created(ord) => (String::from("created"), ord.into()),
             Sort::Number(ord) => (String::from("number"), ord.into()),
-            Sort::Starts(ord) => (String::from("stars"), ord.into()),
+            Sort::Stars(ord) => (String::from("stars"), ord.into()),
             Sort::Watchers(ord) => (String::from("watchers"), ord.into()),
             Sort::Comments(ord) => (String::from("comments"), ord.into()),
             Sort::BestMatch(ord) => (String::from("best_match"), ord.into()),
@@ -168,9 +193,16 @@ impl Into<(String, String)> for Sort {
     }
 }
 
+#[derive(Debug)]
 pub enum Order {
     Desc,
     Asc,
+}
+
+impl Default for Order {
+    fn default() -> Self {
+        Order::Desc
+    }
 }
 
 impl From<String> for Order {

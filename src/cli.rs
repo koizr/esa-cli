@@ -42,10 +42,6 @@ enum SubCmd {
         #[clap(short, long)]
         edit: bool,
 
-        /// Views posts
-        #[clap(short, long)]
-        list: bool,
-
         /// Creates new post
         #[clap(short, long)]
         new: bool,
@@ -53,6 +49,26 @@ enum SubCmd {
         /// Deletes the post
         #[clap(short, long)]
         delete: bool,
+
+        /// Views posts
+        #[clap(short, long)]
+        list: bool,
+
+        /// Filters posts
+        #[clap(short, long)]
+        query: Option<String>,
+
+        /// Includes optional data
+        #[clap(short, long)]
+        include: Option<Vec<String>>,
+
+        /// Sorts posts
+        #[clap(short, long)]
+        sort: Option<String>,
+
+        /// Sorting order
+        #[clap(short, long)]
+        order: Option<String>,
     },
 }
 
@@ -80,9 +96,13 @@ pub async fn run() -> Result<()> {
         SubCmd::Post {
             id,
             edit,
-            list,
             new,
             delete,
+            list,
+            query,
+            include,
+            sort,
+            order,
         } => match id {
             Some(id) => {
                 if edit {
@@ -95,7 +115,7 @@ pub async fn run() -> Result<()> {
             }
             None => {
                 if list {
-                    print_posts(&esa).await?;
+                    print_posts(&esa, query, include, sort, order).await?;
                 } else if new {
                     create_post(&esa, &config).await?;
                 } else {
@@ -127,11 +147,20 @@ async fn print_post(esa: &Esa, id: i32) -> Result<()> {
 }
 
 /// Print posts
-async fn print_posts(esa: &Esa) -> Result<()> {
-    // TODO: クエリを受け付ける
-    let posts = esa
-        .posts(esa::post::SearchQuery::new(None, None, None))
-        .await?;
+async fn print_posts(
+    esa: &Esa,
+    query: Option<String>,
+    include: Option<Vec<String>>,
+    sort: Option<String>,
+    order: Option<String>,
+) -> Result<()> {
+    let include: Option<Vec<esa::post::Include>> =
+        include.map(|include| include.into_iter().map(|i| i.into()).collect());
+    let sort = sort.map(|s| esa::post::Sort::from((s, order)));
+    let search_query = esa::post::SearchQuery::new(query, include, sort);
+    log::debug!("{:?}", &search_query);
+
+    let posts = esa.posts(search_query).await?;
     for post in posts.posts {
         println!("{}\t{}", post.number, post.full_name);
     }
