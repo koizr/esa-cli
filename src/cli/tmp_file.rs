@@ -5,7 +5,7 @@ use std::process::{Command, ExitStatus};
 use anyhow::{anyhow, Result};
 use log;
 
-use super::config::Config;
+use super::config::Env;
 use crate::esa;
 
 pub const TMP_FILE_DEFAULT_VALUE: &'static str = r#"<!-- ### input post name next line ### -->
@@ -25,34 +25,34 @@ pub fn format_post_content(title: &str, body: &str) -> String {
 }
 
 pub struct Editor<'a> {
-    config: &'a Config,
+    env: &'a Env,
 }
 
 impl<'a> Editor<'a> {
-    pub fn new(config: &'a Config) -> Self {
-        Self { config }
+    pub fn new(env: &'a Env) -> Self {
+        Self { env }
     }
 
     pub fn open(&self, default_text: &str) -> ExitStatus {
         OpenOptions::new()
             .write(true)
             .truncate(true)
-            .open(&self.config.tmp_file_path)
+            .open(&self.env.tmp_file_path)
             .expect("failed to open temporarily file")
             .write_all(default_text.as_bytes())
             .expect("failed to write to temporarily file");
 
         log::debug!(
             "open editor {}",
-            self.config
+            self.env
                 .editor_path
                 .as_os_str()
                 .to_str()
                 .unwrap_or("<no editor path>")
         );
 
-        let status = Command::new(&self.config.editor_path)
-            .arg(&self.config.tmp_file_path)
+        let status = Command::new(&self.env.editor_path)
+            .arg(&self.env.tmp_file_path)
             .spawn()
             .expect("failed to spawn text editor")
             .wait()
@@ -70,7 +70,7 @@ impl<'a> Editor<'a> {
     }
 
     pub fn read(&self) -> String {
-        fs::read_to_string(&self.config.tmp_file_path).expect("failed to read temporarily file")
+        fs::read_to_string(&self.env.tmp_file_path).expect("failed to read temporarily file")
     }
 
     pub fn diff(&self) -> Option<String> {

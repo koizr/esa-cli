@@ -10,7 +10,7 @@ use crate::esa::{self, Esa};
 mod config;
 mod tmp_file;
 
-use config::Config;
+use config::Env;
 use tmp_file::Editor;
 
 #[derive(Clap, Debug)]
@@ -79,8 +79,8 @@ enum SubCmd {
 pub async fn run() -> Result<()> {
     let opts = Opts::parse();
     log::debug!("Options: {:?}", opts);
-    let config = Config::new();
-    log::debug!("Config: {:?}", config);
+    let esa_env = Env::new();
+    log::debug!("Env: {:?}", esa_env);
 
     let esa = Esa::new(
         esa::TeamId::new(
@@ -110,7 +110,7 @@ pub async fn run() -> Result<()> {
         } => match id {
             Some(id) => {
                 if edit {
-                    edit_post(&esa, id, &config).await?;
+                    edit_post(&esa, id, &esa_env).await?;
                 } else if delete {
                     delete_post(&esa, id).await?;
                 } else {
@@ -121,7 +121,7 @@ pub async fn run() -> Result<()> {
                 if list {
                     print_posts(&esa, query, include, sort, order).await?;
                 } else if new {
-                    create_post(&esa, &config).await?;
+                    create_post(&esa, &esa_env).await?;
                 } else {
                     bail!("Post ID argument or --list option are required.");
                 }
@@ -172,8 +172,8 @@ async fn print_posts(
 }
 
 /// Create new post
-async fn create_post(esa: &Esa, config: &Config) -> Result<()> {
-    let editor = Editor::new(config);
+async fn create_post(esa: &Esa, esa_env: &Env) -> Result<()> {
+    let editor = Editor::new(esa_env);
     let exit_status = editor.open(tmp_file::TMP_FILE_DEFAULT_VALUE);
     if exit_status.success() {
         if let Some(diff) = editor.diff() {
@@ -192,11 +192,11 @@ async fn create_post(esa: &Esa, config: &Config) -> Result<()> {
 /// Edit post
 /// # Args
 /// - id: Post ID
-async fn edit_post(esa: &Esa, id: i32, config: &Config) -> Result<()> {
+async fn edit_post(esa: &Esa, id: i32, esa_env: &Env) -> Result<()> {
     let post = esa.post(id).await?;
     let post_content = tmp_file::format_post_content(&post.full_name, &post.body_md);
 
-    let editor = Editor::new(config);
+    let editor = Editor::new(esa_env);
     let exit_status = editor.open(&post_content);
 
     if exit_status.success() {

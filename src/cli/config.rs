@@ -1,4 +1,3 @@
-/// return config directory path
 use std::env;
 use std::fs::{self, File};
 use std::path::PathBuf;
@@ -6,13 +5,13 @@ use std::path::PathBuf;
 use dirs;
 
 #[derive(Debug)]
-pub struct Config {
+pub struct Env {
     pub dir_path: PathBuf,
     pub tmp_file_path: PathBuf,
     pub editor_path: PathBuf,
 }
 
-impl Config {
+impl Env {
     pub fn new() -> Self {
         let dir_path = {
             let mut home = dirs::home_dir().expect("home dir is not found");
@@ -31,13 +30,13 @@ impl Config {
             PathBuf::from(editor)
         };
 
-        let config = Self {
+        let esa_env = Self {
             dir_path,
             tmp_file_path,
             editor_path,
         };
-        config.init();
-        config
+        esa_env.init();
+        esa_env
     }
 
     fn init(&self) {
