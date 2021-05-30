@@ -54,19 +54,23 @@ enum SubCmd {
         #[clap(short, long)]
         list: bool,
 
-        /// Filters posts
+        /// Filters posts.
+        /// see details https://docs.esa.io/posts/104
         #[clap(short, long)]
         query: Option<String>,
 
-        /// Includes optional data
+        /// Includes optional data.
+        /// Sets some from comments | comments.stargazers | stargazers
         #[clap(short, long)]
         include: Option<Vec<String>>,
 
-        /// Sorts posts
+        /// Sorts posts.
+        /// Sets updated(default) | created | number | stars | watchers | comments | best_match
         #[clap(short, long)]
         sort: Option<String>,
 
-        /// Sorting order
+        /// Sorting order.
+        /// Sets desc(default) | asc
         #[clap(short, long)]
         order: Option<String>,
     },
