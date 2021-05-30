@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fmt;
+use std::fmt::{self, Debug};
 
 use anyhow::Result;
 use reqwest::{self, Client, ClientBuilder, Url};
@@ -13,26 +13,21 @@ const BASE_URL: &str = "https://api.esa.io/v1";
 
 pub struct Esa {
     client: Client,
-    team_id: TeamId,
-    access_token: AccessToken,
+    team: Team,
 }
 impl Esa {
-    pub fn new(team_id: TeamId, access_token: AccessToken) -> Self {
+    pub fn new(team: Team) -> Self {
         let client = ClientBuilder::new()
             .build()
             .expect("failed to build HTTP client");
-        Esa {
-            client,
-            team_id,
-            access_token,
-        }
+        Esa { client, team }
     }
 
     pub async fn team(&self) -> Result<team::Team> {
         let response = self
             .client
-            .get(format!("{}/teams/{}", BASE_URL, self.team_id))
-            .bearer_auth(self.access_token.to_string())
+            .get(format!("{}/teams/{}", BASE_URL, self.team.id))
+            .bearer_auth(self.team.access_token.to_string())
             .send()
             .await?;
         if response.status().is_success() {
@@ -47,8 +42,8 @@ impl Esa {
     pub async fn post(&self, id: i32) -> Result<post::Post> {
         let response = self
             .client
-            .get(format!("{}/teams/{}/posts/{}", BASE_URL, self.team_id, id))
-            .bearer_auth(self.access_token.to_string())
+            .get(format!("{}/teams/{}/posts/{}", BASE_URL, self.team.id, id))
+            .bearer_auth(self.team.access_token.to_string())
             .send()
             .await?;
 
@@ -77,14 +72,14 @@ impl Esa {
         }
 
         let url = Url::parse_with_params(
-            format!("{}/teams/{}/posts", BASE_URL, self.team_id).as_str(),
+            format!("{}/teams/{}/posts", BASE_URL, self.team.id).as_str(),
             query_string,
         )?;
 
         let response = self
             .client
             .get(url)
-            .bearer_auth(self.access_token.to_string())
+            .bearer_auth(self.team.access_token.to_string())
             .send()
             .await?;
         if response.status().is_success() {
@@ -112,8 +107,8 @@ impl Esa {
         };
         let response = self
             .client
-            .post(format!("{}/teams/{}/posts", BASE_URL, self.team_id))
-            .bearer_auth(self.access_token.to_string())
+            .post(format!("{}/teams/{}/posts", BASE_URL, self.team.id))
+            .bearer_auth(self.team.access_token.to_string())
             .json(&new_post)
             .send()
             .await?;
@@ -130,8 +125,8 @@ impl Esa {
     pub async fn edit_post(&self, id: i32, post: &post::EditedPost) -> Result<post::PostEdited> {
         let response = self
             .client
-            .patch(format!("{}/teams/{}/posts/{}", BASE_URL, self.team_id, id))
-            .bearer_auth(self.access_token.to_string())
+            .patch(format!("{}/teams/{}/posts/{}", BASE_URL, self.team.id, id))
+            .bearer_auth(self.team.access_token.to_string())
             .json(post)
             .send()
             .await?;
@@ -148,8 +143,8 @@ impl Esa {
     pub async fn delete_post(&self, id: i32) -> Result<()> {
         let response = self
             .client
-            .delete(format!("{}/teams/{}/posts/{}", BASE_URL, self.team_id, id))
-            .bearer_auth(self.access_token.to_string())
+            .delete(format!("{}/teams/{}/posts/{}", BASE_URL, self.team.id, id))
+            .bearer_auth(self.team.access_token.to_string())
             .send()
             .await?;
 
@@ -162,7 +157,15 @@ impl Esa {
     }
 }
 
+#[derive(Debug, Deserialize, PartialEq, Clone)]
+pub struct Team {
+    pub id: TeamId,
+    pub access_token: AccessToken,
+}
+
+#[derive(Deserialize, PartialEq, Clone)]
 pub struct AccessToken(String);
+
 impl AccessToken {
     pub fn new(id: String) -> Self {
         Self(id)
@@ -174,7 +177,15 @@ impl fmt::Display for AccessToken {
     }
 }
 
+impl Debug for AccessToken {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "AccessToken(**********)")
+    }
+}
+
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct TeamId(String);
+
 impl TeamId {
     pub fn new(id: String) -> Self {
         Self(id)

@@ -1,5 +1,6 @@
 use std::env;
 use std::io;
+use std::path::PathBuf;
 
 use anyhow::{bail, Context, Result};
 use clap::Clap;
@@ -10,7 +11,7 @@ use crate::esa::{self, Esa};
 mod config;
 mod tmp_file;
 
-use config::Env;
+use config::{Config, Env};
 use tmp_file::Editor;
 
 #[derive(Clap, Debug)]
@@ -23,6 +24,10 @@ use tmp_file::Editor;
 struct Opts {
     #[clap(subcommand)]
     sub: SubCmd,
+
+    /// Uses team ID
+    #[clap(short, long)]
+    team: Option<String>,
 }
 
 #[derive(Clap, Debug)]
@@ -79,19 +84,23 @@ enum SubCmd {
 pub async fn run() -> Result<()> {
     let opts = Opts::parse();
     log::debug!("Options: {:?}", opts);
-    let esa_env = Env::new();
+
+    let esa_env = Env::new(env::var("ESA_CONFIG").ok().map(|path| PathBuf::from(path)));
     log::debug!("Env: {:?}", esa_env);
 
-    let esa = Esa::new(
-        esa::TeamId::new(
-            env::var("ESA_TEAM_ID")
-                .context("set your team ID to environment variable ESA_TEAM_ID.")?,
-        ),
-        esa::AccessToken::new(
-            env::var("ESA_ACCESS_TOKEN")
-                .context("set your access token to environment variable ESA_ACCESS_TOKEN.")?,
-        ),
-    );
+    let esa = {
+        let config = Config::new(&esa_env);
+        let team = match opts.team {
+            Some(team_id) => config.get(esa::TeamId::new(team_id)),
+            None => config.default(),
+        }
+        .context("no team is available")?
+        .clone();
+        log::debug!("Config: {:?}", config);
+        log::debug!("Team: {:?}", team);
+
+        Esa::new(team)
+    };
 
     match opts.sub {
         SubCmd::Team => {
