@@ -1,5 +1,5 @@
 use std::env;
-use std::io;
+use std::io::{self, Write};
 use std::path::PathBuf;
 
 use anyhow::{bail, Context, Result};
@@ -251,8 +251,8 @@ async fn delete_post(esa: &Esa, id: i32) -> Result<()> {
 /// - Ok(false): input others
 /// - Err: input error
 fn confirm(message: &str) -> Result<bool> {
-    // TODO: (y/N): _ ← ここに入力できるようにしたい（改行をはさみたくない）
-    println!("{} (y/N): ", message);
+    print!("{} (y/N): ", message);
+    io::stdout().flush().unwrap();
 
     let mut answer = String::new();
     io::stdin().read_line(&mut answer)?;
