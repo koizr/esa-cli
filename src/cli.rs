@@ -3,7 +3,7 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 
 use anyhow::{bail, Context, Result};
-use clap::Clap;
+use clap::Parser;
 use log;
 
 use crate::esa::{self, Esa};
@@ -14,7 +14,7 @@ mod tmp_file;
 use config::{Config, Env};
 use tmp_file::Editor;
 
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 #[clap(
     name = "esa-cli",
     version = "0.0.0",
@@ -30,7 +30,7 @@ struct Opts {
     team: Option<String>,
 }
 
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 enum SubCmd {
     /// Shows the team's information
     #[clap(name = "team")]
