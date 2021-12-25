@@ -4,7 +4,6 @@ use std::path::PathBuf;
 
 use anyhow::{bail, Context, Result};
 use clap::Parser;
-use log;
 
 use esa::{self, Esa};
 
@@ -85,7 +84,7 @@ pub async fn run() -> Result<()> {
     let opts = Opts::parse();
     log::debug!("Options: {:?}", opts);
 
-    let esa_env = Env::new(env::var("ESA_CONFIG").ok().map(|path| PathBuf::from(path)));
+    let esa_env = Env::new(env::var("ESA_CONFIG").ok().map(PathBuf::from));
     log::debug!("Env: {:?}", esa_env);
 
     let esa = {

@@ -3,12 +3,10 @@ use std::io::Write;
 use std::process::{Command, ExitStatus};
 
 use anyhow::{anyhow, Result};
-use log;
 
 use super::config::Env;
-use crate::esa;
 
-pub const TMP_FILE_DEFAULT_VALUE: &'static str = r#"<!-- ### input post name next line ### -->
+pub const TMP_FILE_DEFAULT_VALUE: &str = r#"<!-- ### input post name next line ### -->
 
 <!-- ### input body next and subsequent lines ### -->
 "#;
@@ -63,7 +61,7 @@ impl<'a> Editor<'a> {
             status
                 .code()
                 .map(|s| s.to_string())
-                .unwrap_or(String::from("<no exit status>"))
+                .unwrap_or_else(|| String::from("<no exit status>"))
         );
 
         status
@@ -85,8 +83,8 @@ impl<'a> Editor<'a> {
 
 pub fn parse_post(content: &str) -> Result<esa::post::PostContent> {
     let mut lines = content.lines();
-    if let None = lines.next() {
-        Err(anyhow!("failed to parse content"))?
+    if lines.next().is_none() {
+        return Err(anyhow!("failed to parse content"));
     }
     let title = lines
         .next()
@@ -96,8 +94,8 @@ pub fn parse_post(content: &str) -> Result<esa::post::PostContent> {
         name,
         tags,
     } = parse_title(title)?;
-    if let None = lines.next() {
-        Err(anyhow!("failed to parse content"))?
+    if lines.next().is_none() {
+        return Err(anyhow!("failed to parse content"));
     }
     let mut body = Vec::new();
     for line in lines {
@@ -121,17 +119,17 @@ struct ParsedTitle {
 
 fn parse_title(source: &str) -> Result<ParsedTitle> {
     let (category, name, tags) = {
-        if source.len() < 1 {
-            Err(anyhow!("failed to parse content. post name is required"))?
+        if source.is_empty() {
+            return Err(anyhow!("failed to parse content. post name is required"));
         };
-        let title = source.split("/").collect::<Vec<_>>();
+        let title = source.split('/').collect::<Vec<_>>();
         let category = title[..title.len() - 1].join("/");
         let (name, tags) = parse_name_and_tags(title[title.len() - 1]);
         (
-            if category.len() == 0 {
+            if category.is_empty() {
                 None
             } else {
-                Some(String::from(category))
+                Some(category)
             },
             name,
             tags,

@@ -1,6 +1,5 @@
 use anyhow::Result;
 use dotenv::dotenv;
-use env_logger;
 
 #[tokio::main]
 async fn main() -> Result<()> {

@@ -128,13 +128,13 @@ impl From<String> for Include {
     }
 }
 
-impl Into<String> for Include {
-    fn into(self) -> String {
-        match self {
-            Self::Stargazers => "stargazers".to_string(),
-            Self::Comments => "comments".to_string(),
-            Self::CommentStargazers => "comments.stargazers".to_string(),
-            Self::None => "".to_string(),
+impl From<Include> for String {
+    fn from(include: Include) -> Self {
+        match include {
+            Include::Stargazers => "stargazers".to_string(),
+            Include::Comments => "comments".to_string(),
+            Include::CommentStargazers => "comments.stargazers".to_string(),
+            Include::None => "".to_string(),
         }
     }
 }
@@ -179,9 +179,9 @@ impl From<(String, Option<String>)> for Sort {
     }
 }
 
-impl Into<(String, String)> for Sort {
-    fn into(self) -> (String, String) {
-        match self {
+impl From<Sort> for (String, String) {
+    fn from(sort: Sort) -> Self {
+        match sort {
             Sort::Updated(ord) => (String::from("update"), ord.into()),
             Sort::Created(ord) => (String::from("created"), ord.into()),
             Sort::Number(ord) => (String::from("number"), ord.into()),
@@ -214,9 +214,9 @@ impl From<String> for Order {
     }
 }
 
-impl Into<String> for Order {
-    fn into(self) -> String {
-        match self {
+impl From<Order> for String {
+    fn from(order: Order) -> Self {
+        match order {
             Order::Asc => String::from("asc"),
             Order::Desc => String::from("desc"),
         }

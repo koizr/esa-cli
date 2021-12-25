@@ -3,7 +3,6 @@ use std::fs::{self, File};
 use std::io::{BufReader, Write};
 use std::path::PathBuf;
 
-use dirs;
 use serde::Deserialize;
 use serde_json::from_reader;
 
@@ -55,13 +54,15 @@ impl Env {
     fn init(&self) {
         // config dir
         if !self.dir_path.exists() {
-            fs::create_dir_all(&self.dir_path).expect(&format!(
-                "failed to config dir. path {}",
-                self.dir_path
-                    .as_os_str()
-                    .to_str()
-                    .expect("failed to get config directory path")
-            ));
+            fs::create_dir_all(&self.dir_path).unwrap_or_else(|_| {
+                panic!(
+                    "failed to config dir. path {}",
+                    self.dir_path
+                        .as_os_str()
+                        .to_str()
+                        .expect("failed to get config directory path")
+                )
+            });
         }
 
         // config file
@@ -94,7 +95,7 @@ impl Config {
 
     pub fn get(&self, team_id: TeamId) -> Option<&Team> {
         match self.default_team {
-            Some(ref team) if team.id == team_id => Some(&team),
+            Some(ref team) if team.id == team_id => Some(team),
             _ => match self.teams {
                 Some(ref teams) => teams.iter().find(|team| team.id == team_id),
                 None => None,

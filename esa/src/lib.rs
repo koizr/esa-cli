@@ -45,7 +45,7 @@ impl Esa {
                 .json::<ErrorResponse>()
                 .await
                 .unwrap_or_else(|e| panic!("Response decode failed: {:?}", e));
-            Err(Error::ApiError(error))?
+            Err(Error::ApiError(error))
         }
     }
 
@@ -62,7 +62,7 @@ impl Esa {
             Ok(post)
         } else {
             let error = response.json::<ErrorResponse>().await?;
-            Err(Error::ApiError(error))?
+            Err(Error::ApiError(error))
         }
     }
 
@@ -99,7 +99,7 @@ impl Esa {
             Ok(posts)
         } else {
             let error = response.json::<ErrorResponse>().await?;
-            Err(Error::ApiError(error))?
+            Err(Error::ApiError(error))
         }
     }
 
@@ -130,7 +130,7 @@ impl Esa {
             Ok(post_created)
         } else {
             let error = response.json::<ErrorResponse>().await?;
-            Err(Error::ApiError(error))?
+            Err(Error::ApiError(error))
         }
     }
 
@@ -148,7 +148,7 @@ impl Esa {
             Ok(post_edited)
         } else {
             let error = response.json::<ErrorResponse>().await?;
-            Err(Error::ApiError(error))?
+            Err(Error::ApiError(error))
         }
     }
 
@@ -164,7 +164,7 @@ impl Esa {
             Ok(())
         } else {
             let error = response.json::<ErrorResponse>().await?;
-            Err(Error::ApiError(error))?
+            Err(Error::ApiError(error))
         }
     }
 }
@@ -183,6 +183,7 @@ impl AccessToken {
         Self(id)
     }
 }
+
 impl fmt::Display for AccessToken {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
