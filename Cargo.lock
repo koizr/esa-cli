@@ -179,6 +179,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "esa"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "log",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "esa-cli"
 version = "0.1.0"
 dependencies = [
@@ -188,6 +202,7 @@ dependencies = [
  "dirs",
  "dotenv",
  "env_logger",
+ "esa",
  "log",
  "reqwest",
  "serde",

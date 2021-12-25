@@ -1,10 +1,6 @@
-extern crate esa_cli;
-
 use anyhow::Result;
 use dotenv::dotenv;
 use env_logger;
-
-use crate::esa_cli::cli;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -12,5 +8,5 @@ async fn main() -> Result<()> {
 
     dotenv().ok();
 
-    cli::run().await
+    esa_cli::run().await
 }
