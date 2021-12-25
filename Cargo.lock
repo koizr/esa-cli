@@ -182,7 +182,6 @@ dependencies = [
 name = "esa"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "chrono",
  "log",
  "reqwest",

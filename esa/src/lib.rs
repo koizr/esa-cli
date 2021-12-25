@@ -1,13 +1,16 @@
 use std::collections::HashMap;
 use std::fmt::{self, Debug};
 
-use anyhow::Result;
 use reqwest::{self, Client, ClientBuilder, Url};
 use serde::Deserialize;
-use thiserror::Error;
 
+pub mod error;
 pub mod post;
 pub mod team;
+
+use error::{Error, ErrorResponse};
+
+pub type Result<T> = std::result::Result<T, Error>;
 
 const BASE_URL: &str = "https://api.esa.io/v1";
 
@@ -15,6 +18,7 @@ pub struct Esa {
     client: Client,
     team: Team,
 }
+
 impl Esa {
     pub fn new(team: Team) -> Self {
         let client = ClientBuilder::new()
@@ -31,11 +35,17 @@ impl Esa {
             .send()
             .await?;
         if response.status().is_success() {
-            let team = response.json::<team::Team>().await?;
+            let team = response
+                .json::<team::Team>()
+                .await
+                .unwrap_or_else(|e| panic!("Response decode failed: {:?}", e));
             Ok(team)
         } else {
-            let error = response.json::<ErrorResponse>().await?;
-            Err(EsaError::Error(error))?
+            let error = response
+                .json::<ErrorResponse>()
+                .await
+                .unwrap_or_else(|e| panic!("Response decode failed: {:?}", e));
+            Err(Error::ApiError(error))?
         }
     }
 
@@ -52,7 +62,7 @@ impl Esa {
             Ok(post)
         } else {
             let error = response.json::<ErrorResponse>().await?;
-            Err(EsaError::Error(error))?
+            Err(Error::ApiError(error))?
         }
     }
 
@@ -74,7 +84,9 @@ impl Esa {
         let url = Url::parse_with_params(
             format!("{}/teams/{}/posts", BASE_URL, self.team.id).as_str(),
             query_string,
-        )?;
+        )
+        // ここで panic するということは URL の組み立て方がおかしい
+        .unwrap_or_else(|e| panic!("url parse error: {:?}", e));
 
         let response = self
             .client
@@ -87,7 +99,7 @@ impl Esa {
             Ok(posts)
         } else {
             let error = response.json::<ErrorResponse>().await?;
-            Err(EsaError::Error(error))?
+            Err(Error::ApiError(error))?
         }
     }
 
@@ -118,7 +130,7 @@ impl Esa {
             Ok(post_created)
         } else {
             let error = response.json::<ErrorResponse>().await?;
-            Err(EsaError::Error(error))?
+            Err(Error::ApiError(error))?
         }
     }
 
@@ -136,7 +148,7 @@ impl Esa {
             Ok(post_edited)
         } else {
             let error = response.json::<ErrorResponse>().await?;
-            Err(EsaError::Error(error))?
+            Err(Error::ApiError(error))?
         }
     }
 
@@ -152,7 +164,7 @@ impl Esa {
             Ok(())
         } else {
             let error = response.json::<ErrorResponse>().await?;
-            Err(EsaError::Error(error))?
+            Err(Error::ApiError(error))?
         }
     }
 }
@@ -195,15 +207,4 @@ impl fmt::Display for TeamId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
-}
-#[derive(Debug, Deserialize)]
-pub struct ErrorResponse {
-    error: String,
-    message: String,
-}
-
-#[derive(Debug, Error)]
-pub enum EsaError {
-    #[error("error: {}, message: {}", .0.error, .0.message)]
-    Error(ErrorResponse),
 }
